@@ -234,3 +234,50 @@ curriculum's remaining time.
 - [ ] PAT generated and `settings.xml` configured — due 2026-09-20
 - [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22
+- [ ] Final exam (theory + practice) — after Step 5
+
+## Final exam
+
+Do this after Step 5. Answer in this README, under each question (English
+preferred, for practice). Grading: theory 5 pts + practice 5 pts, 0-10.
+
+### Theory (5 pts — 0.5 each)
+
+1. Explain `groupId`, `artifactId` and `version`. Where does each one show up in
+   the path of the jar under `~/.m2/repository` and in the registry? Is `groupId`
+   the same thing as the Java package?
+2. Semantic Versioning: when do you bump PATCH, MINOR and MAJOR? Give one example
+   of each for this library.
+3. The registry already has `1.1.0`, and a project pins `1.0.0`. What happens on a
+   fresh clone by a new developer? What can actually make that developer's build fail?
+4. Why can't you redeploy the same release version? What is a `-SNAPSHOT` and when
+   is it the right choice?
+5. Compare the scopes `compile`, `provided` and `test`. Why is `jakarta.validation-api`
+   `provided` and `hibernate-validator` `test` here? What breaks for a Spring Boot
+   consumer if `hibernate-validator` were `compile` in the library?
+6. `mvn deploy` also installs the jar into `~/.m2`. Why does Step 5 ask you to delete
+   that folder before building the consumer?
+7. Why is `null` valid in a Bean Validation constraint, and how do you reject it?
+8. Why must "all digits equal" be an explicit rule in the CPF validator?
+9. Why does GitHub Packages require a token even for a public package? Which scopes
+   did you use and why? Why must the token never be committed?
+10. The Docker Hub analogy (image = artifact, `docker push` = `mvn deploy`): where does
+    it stop being accurate?
+
+### Practice (5 pts — 1 each)
+
+1. **Release 1.1.0 with TDD.** Add `boolean allowMask() default true` to `@CPF`: when
+   `false`, only 11 raw digits are accepted. Write the failing tests first, then the code,
+   bump the version to `1.1.0`, run `mvn verify`, then `mvn deploy`.
+   Done when: `1.1.0` appears in the Packages tab and `1.0.0` is still there.
+2. **Two versions side by side.** The consumer stays on `1.0.0` and builds fine after
+   `1.1.0` is published. Then upgrade the consumer to `1.1.0` and use `allowMask = false`.
+   Done when: both builds are green and the diff of the consumer's `pom.xml` is one line.
+3. **Break it on purpose (version).** Run `mvn deploy` again with the same `1.1.0`.
+   Done when: the error message is pasted here and explained in your own words.
+4. **Break it on purpose (access).** Use a wrong or missing token in `settings.xml` and
+   build the consumer. Done when: the `401` log is pasted here and you explain how it
+   differs from the error in task 3.
+5. **Clean-machine proof.** Delete `~/.m2/repository/com/diogopaza` and rebuild the
+   consumer, adding `@NotNull` next to `@CPF` on `Pessoa`. Done when: the log shows the
+   jar downloaded from GitHub Packages and a test proves `null` is now rejected.
