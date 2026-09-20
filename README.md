@@ -85,10 +85,16 @@ Done when: `mvn test-compile` fails **only** because `CPF` and
 That failure is the starting point.
 
 Question (1 pt): why is `hibernate-validator` a `test` dependency while
-`jakarta.validation-api` is `provided`? What would break for a Spring Boot
-consumer if `hibernate-validator` were `compile` in this library?
+`jakarta.validation-api` (which you will add in Step 2) is `provided`? What would
+break for a Spring Boot consumer if `hibernate-validator` were `compile` in this
+library?
 
-**Answer:**
+**Answer:** `hibernate-validator` uses the `test` scope because it is only used in the
+library's tests, so the `test` scope does not pull its dependencies into the consumer.
+`jakarta.validation-api` is `provided` because our consumers (Spring) already have that
+library. If `hibernate-validator` were `compile`, it would pull in dependencies that
+Spring already has, so we could get version conflicts, since the consumer already has
+those dependencies.
 
 
 ### Step 2 — The `@CPF` annotation (you write it)
@@ -236,7 +242,7 @@ curriculum's remaining time.
 
 ## Status
 
-- [ ] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red)
+- [x] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red) — graded 10/10
 - [ ] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — due 2026-09-19
 - [ ] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — due 2026-09-19
 - [ ] PAT generated and `settings.xml` configured — due 2026-09-20
