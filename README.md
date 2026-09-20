@@ -97,6 +97,31 @@ Spring already has, so we could get version conflicts, since the consumer alread
 those dependencies.
 
 
+**Step 1 result — 10/10**
+
+| Criterion | Score |
+|---|---|
+| Mandatory: `mvn test-compile` fails only on the missing `CPF`/`CpfConstraintValidator`, no POM warning | 5/5 |
+| Contract: coordinates, compiler release, scopes, `groupId` | 2/2 |
+| Clarity: lean `pom.xml`, no duplication or stale comments | 2/2 |
+| Question: dependency scopes | 1/1 |
+
+What was done:
+- Wrote the `pom.xml` from scratch: coordinates `com.diogopaza.validation:cpf-validator:1.0.0`,
+  `maven.compiler.release` 17, UTF-8 encoding, and the three test dependencies.
+- Fixed the review points one by one: `junit-jupiter` instead of `junit-jupiter-api`
+  (the tests need `junit-jupiter-params`), `test` scope instead of `compile` for
+  `hibernate-validator` and `expressly`, and `org.hibernate.validator` as the
+  current `groupId` (the old one only worked through a relocation).
+- Found by reading the logs that Maven was running on Java 8 (`JAVA_HOME` pointed to it),
+  which silently ignored `release 17`, and that `RELEASE` pseudo-versions pulled JUnit 6
+  and made the build non-reproducible. Removed the duplicated `RELEASE` blocks.
+- Created a `usejdk.bat` script to switch between JDK 8 (Play, Educabiz) and JDK 17
+  per terminal, without touching the global `JAVA_HOME`.
+- Answered the question: `hibernate-validator` is `test` so it is not passed on to
+  consumers; `jakarta.validation-api` is `provided` because Spring already brings it;
+  `compile` would cause version conflicts.
+
 ### Step 2 — The `@CPF` annotation (you write it)
 
 Write `CPF` with `message`, `groups`, `payload`, the right `@Target`/`@Retention`
@@ -117,6 +142,12 @@ Mandatory tests (`EtapaAnotacao`), all green:
 
 Done when: the project compiles and the 5 `EtapaAnotacao` tests pass. The
 `EtapaValidador` tests are expected to still fail (the stub accepts everything).
+
+Question (1 pt): why does `@CPF` need `@Retention(RetentionPolicy.RUNTIME)`? What
+would happen to the validation if it were `SOURCE` or `CLASS`, and who reads the
+annotation at runtime?
+
+**Answer:**
 
 ### Step 3 — The validator logic (you write it)
 
