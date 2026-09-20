@@ -81,7 +81,15 @@ what this step needs:
 No surefire plugin is needed: Maven 3.9.x already ships a version that runs JUnit 5.
 
 Done when: `mvn test-compile` fails **only** because `CPF` and
-`CpfConstraintValidator` do not exist yet. That failure is the starting point.
+`CpfConstraintValidator` do not exist yet, and Maven prints no POM `WARNING`.
+That failure is the starting point.
+
+Question (1 pt): why is `hibernate-validator` a `test` dependency while
+`jakarta.validation-api` is `provided`? What would break for a Spring Boot
+consumer if `hibernate-validator` were `compile` in this library?
+
+**Answer:**
+
 
 ### Step 2 — The `@CPF` annotation (you write it)
 
