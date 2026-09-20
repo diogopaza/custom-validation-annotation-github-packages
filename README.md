@@ -47,6 +47,103 @@ public class Pessoa {
 }
 ```
 
+## Step-by-step (TDD)
+
+The tests are the acceptance criteria. Each step lists what is **mandatory**:
+the step is only done when those tests are green. All tests live in
+`src/test/java/com/diogopaza/validation/PessoaCpfValidationTest.java`,
+grouped by step in `@Nested` classes. `Pessoa` is a test-scope fixture
+(it is never shipped in the jar).
+
+Contract the tests assume:
+- annotation `com.diogopaza.validation.CPF`, validator `com.diogopaza.validation.CpfConstraintValidator`
+- accepted formats: exactly 11 digits, or the mask `###.###.###-##` (no trimming)
+- `null` is valid (Bean Validation convention, use `@NotNull` to forbid it); `""` and blank strings are invalid
+- default message: `CPF inválido`
+
+### Step 1 — `pom.xml` + `Pessoa` + POC tests (red)
+
+Delivered: `Pessoa` and the test class. You write the `pom.xml`, with only
+what this step needs:
+
+- Coordinates: `groupId` `com.diogopaza.validation`, `artifactId` `cpf-validator`,
+  `version` `1.0.0` (the same ones the consumer will use in Step 5).
+- Properties: `maven.compiler.release` = `17` and `project.build.sourceEncoding` = `UTF-8`
+  (the tests contain accented characters).
+- Test dependencies (`<scope>test</scope>`):
+  - `org.junit.jupiter:junit-jupiter` `5.10.2` — runs the tests
+  - `org.hibernate.validator:hibernate-validator` `8.0.1.Final` — the Bean Validation
+    implementation that reads `@CPF` at runtime (it also brings `jakarta.validation-api`
+    transitively, so the tests compile)
+  - `org.glassfish.expressly:expressly` `5.0.0` — Expression Language implementation
+    that Hibernate Validator requires outside a Spring container
+
+No surefire plugin is needed: Maven 3.9.x already ships a version that runs JUnit 5.
+
+Done when: `mvn test-compile` fails **only** because `CPF` and
+`CpfConstraintValidator` do not exist yet. That failure is the starting point.
+
+### Step 2 — The `@CPF` annotation (you write it)
+
+Write `CPF` with `message`, `groups`, `payload`, the right `@Target`/`@Retention`
+and `@Constraint(validatedBy = CpfConstraintValidator.class)`. Create
+`CpfConstraintValidator` as a stub (`return true`) so it compiles.
+
+`pom.xml` for this step: add `jakarta.validation:jakarta.validation-api` `3.0.2`
+with `<scope>provided</scope>`. Now that `src/main` uses `jakarta.validation`, the
+library needs the API at compile time; `provided` keeps it out of the consumers'
+dependency tree, since Spring Boot's validation starter already brings it.
+
+Mandatory tests (`EtapaAnotacao`), all green:
+- `@Retention(RUNTIME)`
+- `@Target` includes `FIELD`
+- `@Constraint` points to `CpfConstraintValidator`
+- `message()` defaults to `CPF inválido`
+- `groups()` and `payload()` exist with empty defaults
+
+Done when: the project compiles and the 5 `EtapaAnotacao` tests pass. The
+`EtapaValidador` tests are expected to still fail (the stub accepts everything).
+
+### Step 3 — The validator logic (you write it)
+
+Implement `CpfConstraintValidator` (`ConstraintValidator<CPF, String>`).
+
+Mandatory tests (`EtapaValidador`), all green:
+- accepts valid CPFs, with and without mask
+- rejects wrong check digits
+- rejects all-equal digits (`111.111.111-11` passes the check-digit math, so this rule must be explicit)
+- rejects wrong length and wrong format, including partial masks and surrounding spaces
+- rejects non-numeric input **without throwing** (no `NumberFormatException`)
+- `null` is valid
+- the violation points to the `cpf` field with the default message
+- a custom `message` on the annotation is honored
+
+Done when: `mvn test` is fully green.
+
+### Step 4 — Publish to GitHub Packages
+
+Follow "Setup steps" below (token, `settings.xml`, `distributionManagement`).
+
+Mandatory: `mvn verify` fully green **before** `mvn deploy`.
+
+Done when: version `1.0.0` shows up in the repository's **Packages** tab on GitHub.
+
+### Step 5 — Consume it from another project
+
+New Spring Boot 3 / Java 17 project with `spring-boot-starter-validation`, its own
+copy of `Pessoa`, and the dependency from "Setup steps" step 5 — no validation
+code of its own.
+
+Before building, delete `~/.m2/repository/com/diogopaza/validation`:
+`mvn deploy` also installs the jar locally, which would hide a broken remote
+resolution.
+
+Mandatory tests, in the consumer project:
+- the build downloads the artifact from GitHub Packages (see the "Downloading from" line in the log)
+- `Pessoa` with an invalid CPF produces a violation; with a valid CPF, none
+
+Done when: both pass without any validator class in the consumer.
+
 ## Setup steps (manual — run these yourself)
 
 Token handling stays in your hands; these are documented here as a
@@ -131,8 +228,9 @@ curriculum's remaining time.
 
 ## Status
 
-- [ ] Library code (`@CPF` + `ConstraintValidator`) — due 2026-09-19
-- [ ] Unit tests for the validator — due 2026-09-19
+- [ ] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red)
+- [ ] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — due 2026-09-19
+- [ ] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — due 2026-09-19
 - [ ] PAT generated and `settings.xml` configured — due 2026-09-20
 - [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22

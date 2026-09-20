@@ -1,0 +1,22 @@
+package com.diogopaza.validation;
+
+public class Pessoa {
+
+    private final String nome;
+
+    @CPF
+    private final String cpf;
+
+    public Pessoa(String nome, String cpf) {
+        this.nome = nome;
+        this.cpf = cpf;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+}
