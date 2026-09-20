@@ -11,38 +11,33 @@
 
     <!-- properties -->
     <properties>
-        <java.version>17</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <!-- dependencies -->
-    <!-- Source: https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+
     <dependencies>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
+            <artifactId>junit-jupiter</artifactId>
             <version>5.10.2</version>
             <scope>test</scope>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/org.hibernate/hibernate-validator -->
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
-            <version>8.0.1</version>
-            <scope>compile</scope>
+            <version>8.0.1.Final</version>
+            <scope>test</scope>
         </dependency>
 
-        <!-- Source: https://mvnrepository.com/artifact/org.glassfish.expressly/expressly -->
         <dependency>
             <groupId>org.glassfish.expressly</groupId>
             <artifactId>expressly</artifactId>
             <version>5.0.0</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
-
-
-
     </dependencies>
 
 
