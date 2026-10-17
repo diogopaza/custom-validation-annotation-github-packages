@@ -147,7 +147,53 @@ Question (1 pt): why does `@CPF` need `@Retention(RetentionPolicy.RUNTIME)`? Wha
 would happen to the validation if it were `SOURCE` or `CLASS`, and who reads the
 annotation at runtime?
 
-**Answer:**
+**Answer:** `RUNTIME` makes the JVM keep `@CPF` in memory when it loads the class, so it
+can be read through reflection. The one that reads it is the Bean Validation provider
+(Hibernate Validator in the tests, also in Spring Boot): when `validator.validate(...)`
+runs, it scans the fields with reflection, finds annotations marked with `@Constraint`,
+and calls the `ConstraintValidator` declared in `validatedBy`. With `SOURCE`, the
+compiler discards the annotation and it never reaches the `.class`. With `CLASS`, it is
+written to the `.class` but the JVM does not expose it at runtime. In both cases nothing
+breaks and no exception is thrown: the provider simply does not see `@CPF`, the
+validator is never called, and every CPF is accepted. It is a silent failure, which is
+why the `retentionRuntime` test exists.
+
+Choosing a retention policy, by who reads the annotation:
+
+| Retention | Where it exists | Who reads it | Examples |
+|---|---|---|---|
+| `SOURCE` | `.java` only | The compiler and annotation processors | `@Override`, `@SuppressWarnings`, Lombok's `@Getter` |
+| `CLASS` | `.java` and `.class`, not loaded by the JVM | Bytecode tools that read the `.class` as a file | `@SuppressFBWarnings` (SpotBugs), `@Keep` (Android R8/ProGuard), JetBrains `@NotNull` |
+| `RUNTIME` | `.class` and JVM memory | Running frameworks, through reflection | `@CPF`, `@Entity`, `@Autowired`, `@Test` |
+
+`CLASS` is the default when `@Retention` is omitted, so forgetting it on `@CPF` would
+compile fine and silently disable the validation.
+
+**Step 2 result — 9.5/10**
+
+| Criterion | Score |
+|---|---|
+| Mandatory: project compiles, 5 `EtapaAnotacao` tests green, `EtapaValidador` still red | 5/5 |
+| Contract: package `com.diogopaza.validation`, test file and `Pessoa` untouched | 2/2 |
+| Clarity: lean `pom.xml`, `@Override`, comments that match the code | 2/2 |
+| Question: retention policies | 0.5/1 |
+
+What was done:
+- Wrote `@CPF` (`@Retention(RUNTIME)`, `@Target(FIELD)`, `@Constraint`, `message`,
+  `groups`, `payload`) and the `CpfConstraintValidator` stub, and added
+  `jakarta.validation-api` `3.0.2` as `provided`.
+- Fixed the review points one by one: moved both classes from an `annotation` subpackage
+  to the contract package, restored `@CPF` on `Pessoa`, and reverted the edits to the test
+  file, including an `EtapaValidador` that had been commented out to make the build green.
+  Red `EtapaValidador` tests are the expected state in this step.
+- Removed the redundant `maven.compiler.source`/`target` (`release` already covers them).
+- Traced the IntelliJ error "`@Override` is not allowed when implementing interface method"
+  to a stale IDE import with language level `JDK_1_5`. The code was correct and Maven
+  compiled it with `release 17`. Removed a leftover non-Maven `.iml` module and its `out/`
+  folder.
+- Question: correctly explained that `SOURCE` is discarded by the compiler and `CLASS`
+  does not reach runtime. Who reads the annotation (the Bean Validation provider, through
+  reflection) and the consequence (a silent failure, not an exception) were given in review.
 
 ### Step 3 — The validator logic (you write it)
 
@@ -274,7 +320,7 @@ curriculum's remaining time.
 ## Status
 
 - [x] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red) — graded 10/10
-- [ ] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — due 2026-09-19
+- [x] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — graded 9.5/10
 - [ ] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — due 2026-09-19
 - [ ] PAT generated and `settings.xml` configured — due 2026-09-20
 - [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
