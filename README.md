@@ -211,6 +211,41 @@ Mandatory tests (`EtapaValidador`), all green:
 
 Done when: `mvn test` is fully green.
 
+**Step 3 result — 9/10**
+
+| Criterion | Score |
+|---|---|
+| Mandatory: `mvn clean test` fully green (36/36: 30 `EtapaValidador`, 5 `EtapaAnotacao`, 1 own test) | 5/5 |
+| Contract: contract test file untouched, own tests in a separate class | 2/2 |
+| Clarity and design | 2/3 |
+
+What was done:
+- Wrote the check-digit algorithm by hand (weights 10→2 and 11→2, mod 11, remainder
+  `< 2` becomes `0`) and the `DigitosVerificadoresCpf` record, which gets `equals` for
+  free and makes the result easy to assert.
+- Built `isValid` in the order null → format → normalize → rules, so the strict format
+  regex blocks letters and partial masks before any `parseInt` runs (no
+  `NumberFormatException`). The format/normalize helpers, the two regexes and the
+  digit comparison were provided in review on request.
+- Fixed the review points one by one: the `null` check moved before `formatoValido`
+  (it threw `NullPointerException`), the inverted `!todosDigitosIguais` that rejected
+  every valid CPF, and the digits read from the masked input instead of the normalized one.
+- Removed the duplicated loops by extracting `calculaUmDigitoVerificador`, deleted the
+  commented-out code, and moved the own test out of the contract file into
+  `DigitosVerificadorCpfTest`.
+
+Still open in clarity (-1):
+- `calculaUmDigitoVerificador` uses a `null` `String` as a mode flag, with a ternary,
+  an `if` and `int`↔`String` conversions. Passing the digits to weigh (9, then 10) plus
+  the initial weight removes all three.
+- 1-based loop with `charAt(i - 1)`, and `String.valueOf` + `parseInt` instead of
+  `Character.getNumericValue`.
+- `isValid` names (`s`, `constraintValidatorContext`, `novoCpf`), the all-equal check
+  after the calculation instead of before it, and `if (...) return false; return true;`
+  instead of a direct `return`.
+- `DigitosVerificadorCpfTest` does not match the record name and has a single case
+  (`123456789`, which exercises the `< 2` rule, is missing).
+
 ### Step 4 — Publish to GitHub Packages
 
 Follow "Setup steps" below (token, `settings.xml`, `distributionManagement`).
@@ -321,7 +356,7 @@ curriculum's remaining time.
 
 - [x] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red) — graded 10/10
 - [x] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — graded 9.5/10
-- [ ] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — due 2026-09-19
+- [x] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — graded 9/10
 - [ ] PAT generated and `settings.xml` configured — due 2026-09-20
 - [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22
