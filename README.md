@@ -270,6 +270,66 @@ Mandatory tests, in the consumer project:
 
 Done when: both pass without any validator class in the consumer.
 
+### Step 6 — A second library on Nexus (two registries, one consumer)
+
+GitHub Packages is one registry option. Large companies usually run a repository manager
+(Sonatype Nexus or JFrog Artifactory) that also proxies Maven Central. In this step you run
+Nexus locally in Docker, publish a second library there, and make the Step 5 consumer
+resolve one dependency from GitHub Packages and the other from Nexus.
+
+The second library is `com.diogopaza.validation:cnpj-validator:1.0.0`: a `@CNPJ` annotation
+and its `ConstraintValidator`, in its own repository, built with the same TDD flow as Steps 1–3
+(contract tests are delivered when the step starts). Only the URL and the credentials change
+between registries. The `settings.xml` server `id`, `distributionManagement`, versioning and
+scopes work the same way.
+
+**6.1 Nexus in Docker**
+- Run `sonatype/nexus3` on port `8081` with a named volume for `/nexus-data`.
+- Read the initial admin password from `/nexus-data/admin.password` inside the container,
+  change it in the setup wizard, and disable anonymous access.
+- Find the default repositories: `maven-releases` (hosted), `maven-snapshots` (hosted),
+  `maven-central` (proxy) and `maven-public` (group).
+
+**6.2 Publish `cnpj-validator` to Nexus**
+- New `<server>` with id `nexus` in `~/.m2/settings.xml`.
+- `<distributionManagement>` with a `<repository>` pointing to `maven-releases` and a
+  `<snapshotRepository>` pointing to `maven-snapshots`.
+- `mvn verify` fully green, then `mvn deploy`.
+
+**6.3 Snapshots vs releases**
+- Deploy `1.0.1-SNAPSHOT` twice and compare the file names in `maven-snapshots`.
+- Deploy `1.0.0` again to `maven-releases` and read the error.
+
+**6.4 One consumer, two registries**
+- In the Step 5 consumer, declare both repositories (`github` and `nexus`) and depend on
+  `cpf-validator` and `cnpj-validator`. Add an `Empresa` class with a `@CNPJ` field.
+- Delete `~/.m2/repository/com/diogopaza` before building.
+
+Mandatory tests:
+- Nexus UI shows `cnpj-validator` `1.0.0` in `maven-releases`.
+- The consumer log shows `cpf-validator` downloaded from `github` and `cnpj-validator`
+  downloaded from `nexus`.
+- In the consumer: `Pessoa` with an invalid CPF and `Empresa` with an invalid CNPJ each
+  produce one violation; valid values produce none.
+- Redeploying `1.0.1-SNAPSHOT` succeeds; redeploying `1.0.0` to `maven-releases` is rejected.
+  Paste both outputs here and explain the difference.
+- Stop the Nexus container, delete `~/.m2/repository/com/diogopaza` again and rebuild the
+  consumer. Paste the error and explain why only `cnpj-validator` fails.
+
+Theory (1 pt each):
+1. What are hosted, proxy and group repositories in Nexus? Which one should a consumer
+   point to, and why?
+2. The consumer declares two `<repository>` entries. How does Maven decide where to look for
+   each dependency, in what order, and what does it cost when an artifact is not in the first one?
+3. In `settings.xml`, `<mirrorOf>*</mirrorOf>` vs `<mirrorOf>central</mirrorOf>` pointing to
+   `maven-public`: what breaks in this project with `*`, and why?
+4. Why does Nexus accept redeploying a `-SNAPSHOT` but reject a release? What is the timestamp
+   in the snapshot file name for?
+5. GitHub Packages vs Nexus: when would a company choose each one? Mention proxying Maven
+   Central, offline builds, access control and cost.
+
+Done when: all mandatory tests pass and the five answers are written here.
+
 ## Setup steps (manual — run these yourself)
 
 Token handling stays in your hands; these are documented here as a
@@ -361,6 +421,7 @@ curriculum's remaining time.
 - [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22
 - [ ] Final exam (theory + practice) — after Step 5
+- [ ] Step 6 — Nexus in Docker, `cnpj-validator` published there, consumer resolving from two registries
 
 ## Final exam
 
