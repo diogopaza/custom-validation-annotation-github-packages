@@ -254,6 +254,40 @@ Mandatory: `mvn verify` fully green **before** `mvn deploy`.
 
 Done when: version `1.0.0` shows up in the repository's **Packages** tab on GitHub.
 
+Question (1 pt): why does the token live in your user's `settings.xml` and not in the
+project's `pom.xml`? And what does the `<id>` repeated in both files do?
+
+**Answer:** The token lives in `settings.xml` because that file is never published to
+GitHub, so its value stays protected. `settings.xml` also centralizes the credentials for
+every external repository on the machine; otherwise the token would have to be repeated in
+each project. In `settings.xml`, the `<id>` names a server and holds the username and the
+token used to access GitHub Packages; in `pom.xml`, the same `<id>` in
+`<distributionManagement>` points to that server. Credentials are also personal while the
+pom is shared: each developer and the CI pipeline keep their own token in their own
+`settings.xml`, and the pom stays the same for everyone.
+
+**Step 4 result — 10/10**
+
+| Criterion | Score |
+|---|---|
+| Mandatory: `mvn verify` green before `mvn deploy`, `1.0.0` in the Packages tab | 5/5 |
+| Setup: token in an environment variable, same `<id>` in both files, `distributionManagement` as a direct child of `<project>` | 2/2 |
+| Understanding: each tag (`id`, `name`, `url`) and the role of `settings.xml` explained | 2/2 |
+| Question: token location and the `<id>` link | 1/1 |
+
+What was done:
+- Generated a classic PAT with only `write:packages` (least privilege), 90-day expiration,
+  stored in the `GITHUB_TOKEN` user environment variable.
+- Created `~/.m2/settings.xml` with a `github` server using `${env.GITHUB_TOKEN}`, so the
+  token is not written in any file, and checked it with `mvn help:effective-settings`.
+- Added `<distributionManagement>` to the pom; it was first placed inside `<dependencies>`
+  and moved out before running.
+- `mvn deploy` ran the full lifecycle (test, package, install, deploy) and uploaded the
+  `.pom`, the `.jar` and `maven-metadata.xml`; `cpf-validator 1.0.0` shows up in Packages.
+- Learned that the token is tied to the account, not to the package, and is separate from
+  the Git credentials; the package inherits the public visibility of the repository, so any
+  GitHub account with `read:packages` can download it, but only the owner can publish.
+
 ### Step 5 — Consume it from another project
 
 New Spring Boot 3 / Java 17 project with `spring-boot-starter-validation`, its own
@@ -417,8 +451,8 @@ curriculum's remaining time.
 - [x] Step 1 — write `pom.xml`; `Pessoa` + POC tests fail only on the missing `CPF` (red) — graded 10/10
 - [x] Step 2 — `@CPF` annotation, `EtapaAnotacao` tests green — graded 9.5/10
 - [x] Step 3 — `CpfConstraintValidator`, `EtapaValidador` tests green — graded 9/10
-- [ ] PAT generated and `settings.xml` configured — due 2026-09-20
-- [ ] Published to GitHub Packages (`mvn deploy`) — due 2026-09-20
+- [x] PAT generated and `settings.xml` configured
+- [x] Step 4 — published to GitHub Packages (`mvn deploy`) — graded 10/10
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22
 - [ ] Final exam (theory + practice) — after Step 5
 - [ ] Step 6 — Nexus in Docker, `cnpj-validator` published there, consumer resolving from two registries
