@@ -364,6 +364,60 @@ Theory (1 pt each):
 
 Done when: all mandatory tests pass and the five answers are written here.
 
+### Step 7 — A Spring Boot starter with `@AutoConfiguration`
+
+Libraries like `spring-boot-starter-data-jpa` create beans by themselves: you add the
+dependency and a `DataSource` shows up without a single `@Bean` in your code. In this step
+you build that mechanism by hand, in a third library, and watch a bean appear in the
+Step 5 consumer with nothing but a new `<dependency>`.
+
+The library is `com.diogopaza.validation:cpf-formatter-spring-boot-starter:1.0.0`, in its own
+repository, published to GitHub Packages like `cpf-validator`. It formats a CPF:
+`formatar("52998224725")` returns `"529.982.247-25"`. The consumer adds the dependency and
+nothing else: no `application.properties` entry, no `@Bean`, no `@ComponentScan`.
+
+Use fictitious CPFs only (like the ones in the contract tests). The repository is public.
+
+**The three pieces**
+- `CpfFormatter`: a plain Java class with the formatting logic, no Spring annotations.
+- `CpfFormatterAutoConfiguration`: annotated with `@AutoConfiguration`, declares the
+  `CpfFormatter` `@Bean` with `@ConditionalOnMissingBean`.
+- `src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`:
+  one line with the fully qualified name of the auto-configuration class.
+
+`pom.xml`: depend on `spring-boot-autoconfigure` (not on a full starter), and keep the
+library free of anything the consumer already brings. Decide the scope and explain it.
+
+Mandatory tests, in the starter (with `ApplicationContextRunner`):
+- with no user configuration, the context contains exactly one `CpfFormatter`.
+- when the user declares their own `CpfFormatter` bean, the user's bean wins and the
+  auto-configured one is not created.
+- break it on purpose: remove the `.imports` entry, show that a consumer no longer gets the
+  bean, paste the error and put the entry back.
+
+Mandatory tests, unit:
+- 11 digits are formatted with the mask.
+- wrong length, letters, `null` and an input that already has the mask each get a defined
+  behavior (exception or return value, your choice), and every case is tested.
+
+Mandatory test, in the Step 5 consumer:
+- a service receives `CpfFormatter` by constructor injection, with no bean declared in the
+  consumer, and a `@SpringBootTest` proves it formats a CPF.
+
+Theory (1 pt each):
+1. How does Spring Boot find auto-configuration classes inside third-party jars? Why doesn't
+   it just scan their packages?
+2. What happens if the `.imports` file is missing or has a typo? Why is this failure silent?
+3. Why is `@ConditionalOnMissingBean` essential in a library? What would happen to a consumer
+   who needs a different `CpfFormatter` without it?
+4. Why does `cpf-validator` (Bean Validation) not need any auto-configuration, while
+   `CpfFormatter` does? What does that say about which libraries should depend on Spring?
+5. `@AutoConfiguration` and the `@Conditional...` annotations are read at runtime. Which
+   retention do they need, and who reads them? Connect it with the Step 2 answer about `@CPF`.
+
+Done when: all mandatory tests pass, `1.0.0` shows up in the starter's Packages tab, and the
+five answers are written here.
+
 ## Setup steps (manual — run these yourself)
 
 Token handling stays in your hands; these are documented here as a
@@ -456,6 +510,7 @@ curriculum's remaining time.
 - [ ] Consumer project (`Pessoa`) created and depending on this library — due 2026-09-22
 - [ ] Final exam (theory + practice) — after Step 5
 - [ ] Step 6 — Nexus in Docker, `cnpj-validator` published there, consumer resolving from two registries
+- [ ] Step 7 — `cpf-formatter-spring-boot-starter` with `@AutoConfiguration`, bean injected in the consumer with no configuration
 
 ## Final exam
 
