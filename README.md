@@ -418,6 +418,71 @@ Theory (1 pt each):
 Done when: all mandatory tests pass, `1.0.0` shows up in the starter's Packages tab, and the
 five answers are written here.
 
+### Step 8 — Configure the starter from `application.properties`
+
+Step 7 works with zero configuration. Real starters also let the consumer change their
+behavior without writing code: `spring.datasource.url`, `server.port`, and so on. In this
+step the consumer tunes `CpfFormatter` from `application.properties`, and Step 7 behavior
+stays the default when nothing is configured.
+
+New version: `cpf-formatter-spring-boot-starter:1.1.0` (a new feature that doesn't break
+anyone, so a minor bump). Use fictitious CPFs only.
+
+**The properties** (prefix `cpf.formatter`)
+
+| Property | Type | Default | Effect |
+|---|---|---|---|
+| `cpf.formatter.enabled` | boolean | `true` | `false` means no `CpfFormatter` bean is created at all |
+| `cpf.formatter.hide-digits` | boolean | `false` | `true` hides the first 3 and the last 2 digits: `"52998224725"` → `"***.982.247-**"` (logs, screens, LGPD) |
+
+**The pieces**
+- `CpfFormatterProperties`: a class annotated with `@ConfigurationProperties(prefix = "cpf.formatter")`,
+  holding the two fields with their defaults. Decide between a JavaBean with getters/setters
+  and a `record`, and explain the choice.
+- `CpfFormatterAutoConfiguration`: enables the properties class
+  (`@EnableConfigurationProperties`), uses `@ConditionalOnProperty` for `enabled` (think about
+  `matchIfMissing`), and passes the properties to `CpfFormatter`.
+- `CpfFormatter` stays a plain Java class with no Spring import. It receives what it needs
+  through the constructor, not the properties class (think about why).
+- `spring-boot-configuration-processor` in the `pom.xml`, so the IDE autocompletes
+  `cpf.formatter.*` in the consumer. Decide the scope (`optional`? `provided`?) and explain it.
+
+Mandatory tests, in the starter (with `ApplicationContextRunner.withPropertyValues`):
+- no properties: same behavior as Step 7 (bean present, full digits).
+- `cpf.formatter.enabled=false`: no `CpfFormatter` bean in the context.
+- `cpf.formatter.hide-digits=true`: the bean returns the hidden format.
+- an invalid value (`cpf.formatter.hide-digits=talvez`): the context fails to start. Paste
+  the error and explain who rejected it.
+- the user's own `CpfFormatter` bean still wins over the auto-configured one, even with
+  properties set.
+
+Mandatory tests, unit:
+- hidden format for 11 digits, and the same input-validation cases from Step 7 with
+  `hide-digits` on.
+
+Mandatory tests, in the Step 5 consumer:
+- an `application.properties` with `cpf.formatter.hide-digits=true` and a `@SpringBootTest`
+  proving the injected bean hides the digits.
+- a second test class overriding it with `@SpringBootTest(properties = "cpf.formatter.hide-digits=false")`.
+  Explain which source wins and why.
+
+Theory (1 pt each):
+1. How does Spring Boot bind `cpf.formatter.hide-digits` (kebab-case) to a field named
+   `hideDigits`? Would `CPF_FORMATTER_HIDEDIGITS` as an environment variable also work?
+   What is this called?
+2. Why does `CpfFormatter` receive plain values instead of `CpfFormatterProperties`? What would
+   it cost to couple it to the properties class?
+3. `@ConditionalOnProperty` vs. `@ConditionalOnMissingBean`: which one is evaluated against
+   what? Can both be on the same `@Bean`, and in what order do they matter?
+4. What does `spring-boot-configuration-processor` generate, where does that file end up inside
+   the jar, and why doesn't the application need it at runtime?
+5. Precedence: list from strongest to weakest a command-line argument, an environment
+   variable, the consumer's `application.properties` and the default in the properties class.
+   Why is this order useful in production (12-Factor, config in the environment)?
+
+Done when: all mandatory tests pass, `1.1.0` shows up in the starter's Packages tab, the
+consumer upgrades to it without changing any code, and the five answers are written here.
+
 ## Setup steps (manual — run these yourself)
 
 Token handling stays in your hands; these are documented here as a
@@ -511,6 +576,7 @@ curriculum's remaining time.
 - [ ] Final exam (theory + practice) — after Step 5
 - [ ] Step 6 — Nexus in Docker, `cnpj-validator` published there, consumer resolving from two registries
 - [ ] Step 7 — `cpf-formatter-spring-boot-starter` with `@AutoConfiguration`, bean injected in the consumer with no configuration
+- [ ] Step 8 — starter configurable from `application.properties` (`@ConfigurationProperties`), published as `1.1.0`
 
 ## Final exam
 
